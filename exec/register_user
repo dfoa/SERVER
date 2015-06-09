@@ -1,0 +1,82 @@
+#!/usr/bin/perl
+
+#{
+#    "source_id": Fiix_unique_id ,
+#    "found_id" :  Fiix_unique_id
+#    "timestamp": "timestamp",
+#    "proximity": "xx" ,
+#    "last_seen": "timestamp",     
+#}   
+
+use CGI;
+use JSON;
+use Data::Dumper;
+
+
+my $q = CGI->new;
+my $data = decode_json($q->param('register'));
+print "Content-Type: text/plain\n\n";
+
+$intromi_id = $data->{'intromi_id'};
+$company_id  = $data->{'company_id'};
+$timestamp = $data->{'time_stamp'};
+$name      = $data->{'name'};
+
+$data = "$intromi_id;$company_id;$timestamp;$name";
+open($fh, '<', "/var/www/profiles/discover.db") or die "Could not open file  $!";
+my $found = 0;
+
+ flock ($fh,2) or print  "Could not lock 'file' - ";
+$| = 1;
+ @arr = <$fh>;
+
+for ($i=0 ; $i<$#arr+1 and !$found; $i++) {
+
+   if (@arr[$i]=~/$intromi_id/)
+    {
+      print @arr[$i];
+      #update record
+      @arr[$i]= "$data\n";
+      $found = 1; 
+    }
+
+} 
+if ($found)
+   { 
+    updateFile() ;     
+   }
+
+else
+ 
+  {
+   @arr[$i].="$data\n";
+   updateFile();
+  }
+
+sub updateFile ()
+   {
+ 
+  open($fd, '>', "/var/www/profiles/discover.db") or die "Could not open file  $!";
+  print  $fd @arr;
+   
+   }
+
+sub addToFile ()
+   {
+
+  open($fd, '>', "/var/www/profiles/discover.db") or die "Could not open file  $!";
+  print  $fd @arr;
+
+   }
+
+close($fd);
+close($fh);
+#`curl  -H 'application/x-www-form-urlencoded' --data  'register={"intromi_id":"5:1:1:1","company_id":"2:2:2:3","timestamp":"123456" }'   http://212.179.154.231/cgi-bin/test222.cgi `;
+
+
+
+
+#inout for this script:
+#curl  -H 'application/x-www-form-urlencoded' --data  'register={"intromi_id":"5:1:1:1","company_id":"2:2:2:3","timestamp":"1234568"}'   http://192.168.50.5:/cgi-bin/test222.cgi
+
+#ab -k   -T 'application/x-www-form-urlencoded' -p post_data_user_lookup -n 100 -c 100  http://54.191.102.79/cgi-bin/user_lookup.cgi

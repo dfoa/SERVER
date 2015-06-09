@@ -1,0 +1,79 @@
+#!/usr/bin/perl
+
+#{
+#    "source_id": Fiix_unique_id ,
+#    "found_id" :  Fiix_unique_id
+#    "timestamp": "timestamp",
+#    "proximity": "xx" ,
+#    "last_seen": "timestamp",     
+#}   
+
+use CGI;
+use JSON;
+use Data::Dumper;
+
+
+my $q = CGI->new;
+my $data = decode_json($q->param('found_nearby'));
+print "Content-Type: text/plain\n\n";
+
+$found = 0;
+$source_id = $data->{'source_id'};
+$found_id  = $data->{'found_id'};
+$timestamp = $data->{'timestamp'};
+$proximity = $data->{'proximity'};
+#$token = $data->{'token'};
+
+
+
+open (FD,'>>',"/var/www/log.log") || die " Cant open file";
+print FD "src ${source_id} dst ${found_id} timeStamp ${timestamp}\n";
+
+$data = "$source_id;$found_id;$timestamp;$proximity";
+open($fh, '<', "/var/www/profiles/discover.db") or die "Could not open file  $!";
+
+@arr = <$fh>;
+
+for ($i=0 ; $i<$#arr+1 and !$found; $i++) {
+
+   if (@arr[$i]=~/$found_id/)
+    {
+
+#      print @arr[$i];
+      #update record
+#      @arr[$i]= "$data\n";
+      $found = 1;
+    }
+
+}
+
+
+
+if ($found)
+  
+   {
+ #get the second field whish is the user  company unique ID
+        
+#$json_builder="o";       
+
+@_  = split(';',@arr[$i-1]);
+        
+#$json_builder.=\"user\";
+#$json_builder.="=";
+#$json_builder.=@_[0]; 
+#print  $json_builder; 
+#use JSON;
+
+my %rec_hash = ('user_id' => @_[0], 'token' => @_[1], 'timeStamp' => @_[2], 'name' => @_[3], 'address' => @_[4]);
+my $json = encode_json \%rec_hash;
+print "$json\n"; 
+
+
+}
+  
+# curl  -H 'application/x-www-form-urlencoded' --data  'found_nearby={"source_id":"1:1:1:1","found_id":"2:2:2:2","timestamp":"123456","proximity":"34"}'   http://212.179.154.231:/cgi-bin/user_lookup.cgi
+#`curl  -H 'application/x-www-form-urlencoded' --data  'register={"intromi_id":"5:1:1:1","company_id":"2:2:2:3","timestamp":"123456" }'   http://212.179.154.231/cgi-bin/test222.cgi `;
+
+#ab  -e filename  -r -k   -T 'application/x-www-form-urlencoded' -p post_data_user_lookup -n 100 -c 100  http://54.191.102.79/cgi-bin/user_lookup
+
+#for i in  `seq 1 1000`   ; do `echo "$i:1:1:1;2:2:2:3;1111111111" >>test` ; done
